@@ -1,4 +1,5 @@
 import sslyze
+import subprocess
 
 class Scans:
     def __init__(self, hosts):
@@ -30,6 +31,17 @@ class Scans:
 
         return scanner
     
+    def openSSL_request(self, host):
+        # Run an openSSL command line scan for the provided host
+        # Should return both the ticket and its lifetime
+        url = host + ":443"
+        outfile = host + ".txt"
+        result = subprocess.run(["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", outfile], stdout=subprocess.PIPE)
+        # print(result.stdout)
+        decoded = result.stdout.decode("utf-8")
+        # print(decoded)
+
+        return decoded
 
 
 

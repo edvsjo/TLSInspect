@@ -3,7 +3,8 @@ import scans
 import parser
 
 # HOSTS = ["www.google.com", "www.facebook.com", "øalkdjføalkjdf"]
-HOSTS = ["www.google.com", "www.facebook.com", "uio.no"]
+# HOSTS = ["www.google.com", "www.facebook.com", "www.uio.no"]
+HOSTS = ["uio.no"]
 
 def import_hosts(hosts_file):
     hosts = []
@@ -33,20 +34,15 @@ def main():
     for scan_result in all_server_scan_results.get_results():
         host = scan_result.server_location.hostname
         parser_obj = parser.Parser(host, scan_result)
+        
+        if parser_obj.tls1_3_support:
+            openSSL_scan_result = scans_obj.openSSL_request(host)
+            parser_obj.parse_openSSL_tls13_scan_result(openSSL_scan_result)
+        
         parser_obj.parse_scan_result()
-        print(host)
-        print("TLSv1.3 Support: ", parser_obj.tls1_3_support)
-        print("TLSv1.2 Support: ", parser_obj.tls1_2_support)
-        print("TLSv1.1 Support: ", parser_obj.tls1_1_support)
-        print("TLSv1.0 Support: ", parser_obj.tls1_0_support)
-        print("SSLv3.0 Support: ", parser_obj.ssl3_support)
-        print("SSLv2.0 Support: ", parser_obj.ssl2_support)
-        print("")
-        print("Fallback SCSV: ", parser_obj.fallback_scsv)
-        print("")
-        print(scan_result.scan_result.session_resumption.result)
-        print(scan_result.scan_result.session_renegotiation.result)
 
+    
+    # scans_obj.openSSL_request("www.uio.no")
 
 
 if __name__ == "__main__":
