@@ -46,19 +46,20 @@ class Parser:
 
     def parse_openSSL_tls13_scan_result(self, openSSL_scan_result):
         self.openSSL_tls13_scan = openSSL_scan_result
+        # print(openSSL_scan_result)
         splitted = openSSL_scan_result.split("\n")
         for entry in splitted:
             stripped = entry.strip()
             if stripped.startswith("TLS session ticket lifetime hint:"):
                 secs = int(stripped.split(":")[1].strip().split(" ")[0])
                 # print(entry.strip().split(":")[1].strip())
-                # print(secs)
+                print(secs)
                 self.ticket_lifetime = secs
                 # break
             if stripped.startswith("Max Early Data:"):
                 size = int(stripped.split(":")[1].strip().split(" ")[0])
                 self.max_early_data_size = size
-                # print(size)
+                print(size)
                 # break
         # ticket_lifetime = splitted.index("TLS session ticket lifetime hint")
         # print(splitted)

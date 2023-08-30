@@ -34,13 +34,20 @@ class Scans:
     def openSSL_request(self, host):
         # Run an openSSL command line scan for the provided host
         # Should return both the ticket and its lifetime
+        print("Running openSSL scan for: ", host)
         url = host + ":443"
-        outfile = host + ".txt"
-        result = subprocess.run(["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", outfile], stdout=subprocess.PIPE)
-        # print(result.stdout)
-        decoded = result.stdout.decode("utf-8")
+        session_outfile = host + ".txt"
+        # proc = subprocess.Popen(["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", outfile], stdout=subprocess.PIPE)
+        proc = subprocess.run(["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", session_outfile], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        # status = proc.wait()
+        # print(status)
+        # output = proc.stdout.read()
+        output = proc.stdout
+        # result = subprocess.run(["echo", "x", "|", "openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", outfile], stdout=subprocess.PIPE)
+        # print(output)
+        decoded = output.decode("utf-8")
         # print(decoded)
-
+        print(decoded)
         return decoded
 
 
