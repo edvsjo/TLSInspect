@@ -1,5 +1,6 @@
 import sslyze
 import subprocess
+import time
 
 class Scans:
     def __init__(self, hosts):
@@ -31,24 +32,23 @@ class Scans:
 
         return scanner
     
+    import time
+
     def openSSL_request(self, host):
         # Run an openSSL command line scan for the provided host
         # Should return both the ticket and its lifetime
         print("Running openSSL scan for: ", host)
         url = host + ":443"
         session_outfile = host + ".txt"
-        # proc = subprocess.Popen(["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", outfile], stdout=subprocess.PIPE)
-        proc = subprocess.run(["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", session_outfile], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-        # status = proc.wait()
-        # print(status)
-        # output = proc.stdout.read()
-        output = proc.stdout
-        # result = subprocess.run(["echo", "x", "|", "openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", outfile], stdout=subprocess.PIPE)
-        # print(output)
-        decoded = output.decode("utf-8")
-        # print(decoded)
-        print(decoded)
-        return decoded
+        cmd = ["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", session_outfile]
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        # Wait for the post handshake ticket and get the lifetime
+        time.sleep(5) # Wait for the handshake to complete
+        proc.stdin.write("QUIT\n")
+        output, _ = proc.communicate()
+        
+        return output
 
 
 

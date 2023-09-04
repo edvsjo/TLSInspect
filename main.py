@@ -48,6 +48,7 @@ def main():
             
             if parser_obj.tls1_3_support:
                 openSSL_scan_result = scans_obj.openSSL_request(host)
+                print(openSSL_scan_result)
                 parser_obj.parse_openSSL_tls13_scan_result(openSSL_scan_result)
             
             parser_obj.parse_scan_result()
