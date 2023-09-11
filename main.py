@@ -29,7 +29,7 @@ def main():
     # Push the results to the database
 
 
-    hosts = import_hosts("top-1m.csv", 3)
+    hosts = import_hosts("top-1m.csv", amount=10)
     # hosts = HOSTS
     
     # Create a scans object
@@ -37,23 +37,25 @@ def main():
     # Perform the scans
     all_server_scan_results = scans_obj.perform_scans()
 
+    failed_scan = []
     # Create a parser object
     for scan_result in all_server_scan_results.get_results():
         host = scan_result.server_location.hostname
+        print("Parsing scan result for: ", host)
         if scan_result.scan_status == sslyze.ServerScanStatusEnum.ERROR_NO_CONNECTIVITY:
             print("Failed to connect to: ", host)
-            continue
+            failed_scan.append(host)
         else: 
             parser_obj = parser.Parser(host, scan_result)
             
             if parser_obj.tls1_3_support:
-                openSSL_scan_result = scans_obj.openSSL_request(host)
-                print(openSSL_scan_result)
-                parser_obj.parse_openSSL_tls13_scan_result(openSSL_scan_result)
+                openSSL_scan_file = scans_obj.openSSL_request(host)
+                # print(openSSL_scan_result)
+                parser_obj.parse_openSSL_tls13_scan_result(openSSL_scan_file)
             
             parser_obj.parse_scan_result()
 
-    
+    print("Failed to connect to: ", failed_scan)
     # scans_obj.openSSL_request("www.uio.no")
 
 

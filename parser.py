@@ -14,17 +14,14 @@ class Parser:
 
         self.fallback_scsv = self.scan_result.scan_result.tls_fallback_scsv.result.supports_fallback_scsv
 
-        self.session_ID_resumption = self.scan_result.scan_result.session_resumption.result.session_id_resumption_result
-        self.tls_ticket_resumption = self.scan_result.scan_result.session_resumption.result.tls_ticket_resumption_result
+        self.session_ID_resumption_support = self.scan_result.scan_result.session_resumption.result.session_id_resumption_result
+        self.tls_ticket_resumption_support = self.scan_result.scan_result.session_resumption.result.tls_ticket_resumption_result
         self.ticket_lifetime = None
 
         self.early_data_support = self.scan_result.scan_result.tls_1_3_early_data.result.supports_early_data
-        self.max_early_data_size = None
+        self.max_early_data_size= None
 
-        self.openSSL_tls13_scan = None
-
-
-
+        self.openSSL_tls13_scan_file = None
 
     def parse_scan_result(self):
         # Parse the scan result
@@ -36,30 +33,33 @@ class Parser:
         print("SSLv3.0 Support: ", self.ssl3_support)
         print("SSLv2.0 Support: ", self.ssl2_support)
         print("Fallback SCSV: ", self.fallback_scsv)
-        print("Session ID resumption: ", self.session_ID_resumption)
-        print("TLS Ticket resumption: ", self.tls_ticket_resumption)
+        print("Session ID resumption: ", self.session_ID_resumption_support)
+        print("TLS Ticket resumption: ", self.tls_ticket_resumption_support)
         print("Ticket lifetime: ", self.ticket_lifetime)
         print("Early data support: ", self.early_data_support)
         print("Max early data size: ", self.max_early_data_size)
         print("")
         pass
 
-    def parse_openSSL_tls13_scan_result(self, openSSL_scan_result):
-        self.openSSL_tls13_scan = openSSL_scan_result
-        # print(openSSL_scan_result)
-        splitted = openSSL_scan_result.split("\n")
+    def parse_openSSL_tls13_scan_result(self, openSSL_scan_file):
+        self.openSSL_tls13_scan_file = openSSL_scan_file
+
+        f = open(openSSL_scan_file, "r")
+        file_content = f.read()
+        splitted = file_content.split("\n")
         for entry in splitted:
             stripped = entry.strip()
+
             if stripped.startswith("TLS session ticket lifetime hint:"):
                 secs = int(stripped.split(":")[1].strip().split(" ")[0])
                 # print(entry.strip().split(":")[1].strip())
-                print(secs)
+                # print(secs)
                 self.ticket_lifetime = secs
                 # break
             if stripped.startswith("Max Early Data:"):
                 size = int(stripped.split(":")[1].strip().split(" ")[0])
                 self.max_early_data_size = size
-                print(size)
+                # print(size)
                 # break
         # ticket_lifetime = splitted.index("TLS session ticket lifetime hint")
         # print(splitted)
