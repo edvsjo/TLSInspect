@@ -29,7 +29,7 @@ def main():
     # Push the results to the database
 
 
-    hosts = import_hosts("top-1m.csv", amount=10)
+    hosts = import_hosts("top-1m.csv", amount=1)
     # hosts = HOSTS
     
     # Create a scans object
@@ -49,10 +49,16 @@ def main():
             parser_obj = parser.Parser(host, scan_result)
             
             if parser_obj.tls1_3_support:
-                openSSL_scan_file = scans_obj.openSSL_request(host)
+                openSSL_scan_file = scans_obj.openSSL_tls13_request(host)
                 # print(openSSL_scan_result)
                 parser_obj.parse_openSSL_tls13_scan_result(openSSL_scan_file)
             
+            #If it supports both tls1.3 and lower versions, we need to do a DOWNGRD test
+            if parser_obj.tls1_3_support and min(parser_obj.supported_versions) < 5:
+                lowest_version = min(parser_obj.supported_versions)
+                stdout_file = scans_obj.openSSL_DOWNGRD_test(host, lowest_version)
+                parser_obj.parse_openSSL_DOWNGRD_test(stdout_file)
+
             parser_obj.parse_scan_result()
 
     print("Failed to connect to: ", failed_scan)
