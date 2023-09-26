@@ -27,14 +27,12 @@ class Scans:
                 print("Invalid hostname: ", host)
                 self.invalid_hosts.append(host)
         
-        
         #Create a scanner object and add all the scans to the queue
         scanner = sslyze.Scanner()
         scanner.queue_scans(all_scan_requests)
         self.scanner = scanner
 
         return scanner
-    
     
 
     def openSSL_tls13_request(self, host):
@@ -47,15 +45,51 @@ class Scans:
         session_outfile = output_folder + host + ".ses"
         stdout_file = output_folder + host + "TLS13Scan.txt"
         f = open(stdout_file, "w+")
-        cmd = ["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", session_outfile, "-state", "-ign_eof"]
+        cmd = ["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_out", session_outfile, "-state", "-ign_eof", "-debug"]
         proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        # Wait for the post handshake ticket and get the lifetime
-        _, error = proc.communicate("0 \r\n")
+        
+        try: 
+            _, error = proc.communicate("0 \r\n", timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            _, error = proc.communicate()
+        finally:        
+            return stdout_file, session_outfile
 
-        return stdout_file
+    def openSSL_tls13_early_data(self, host, session_in_file, early_data_file):
+        url = host + ":443"
+        output_folder = "output/" + host + "/"
+        if not pathlib.Path(output_folder).exists():
+            pathlib.Path(output_folder).mkdir(parents=True, exist_ok=True)
+        stdout_file = output_folder + host + "TLS13Earlydata.txt"
+        f = open(stdout_file, "w+")
+        cmd = ["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_in", session_in_file, "-ign_eof", "-debug", "-early_data", early_data_file]
+        proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        try: 
+            _, error = proc.communicate("0 \r\n", timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            _, error = proc.communicate()
+        finally:        
+            return stdout_file
 
     def openSSL_tls13_resumption(self, host, session_in_file):
-        pass
+        url = host + ":443"
+        output_folder = "output/" + host + "/"
+        if not pathlib.Path(output_folder).exists():
+            pathlib.Path(output_folder).mkdir(parents=True, exist_ok=True)
+        stdout_file = output_folder + host + "TLS13Resumption.txt"
+        f = open(stdout_file, "w+")
+        cmd = ["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_in", session_in_file, "-ign_eof", "-debug"]
+        proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try: 
+            _, error = proc.communicate("0 \r\n", timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            _, error = proc.communicate()
+        finally:        
+            return stdout_file
 
     def openSSL_DOWNGRD_test(self, host, lowest_version):
         url = host + ":443"
@@ -65,15 +99,36 @@ class Scans:
         stdout_file = output_folder + host + "DOWNGRD.txt"
 
         possible_lowest_versions = ["-ssl2", "-ssl3", "-tls1", "-tls1_1", "-tls1_2"]
-        print(lowest_version)
         f = open(stdout_file, "w+")
         cmd = ["openssl", "s_client", "-connect", url, "-debug", "-ign_eof", possible_lowest_versions[lowest_version]]
         proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        # Wait for the post handshake ticket and get the lifetime
-        _, error = proc.communicate("0 \r\n")
+        
+        try: 
+            _, error = proc.communicate("0 \r\n", timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            _, error = proc.communicate()
+        finally:        
+            return stdout_file
 
-        return stdout_file
+    def openSSL_no_SNI_test(self, host):
+        url = host + ":443"
+        output_folder = "output/" + host + "/"
+        if not pathlib.Path(output_folder).exists():
+            pathlib.Path(output_folder).mkdir(parents=True, exist_ok=True)
+        stdout_file = output_folder + host + "no_SNI.txt"
 
+        f = open(stdout_file, "w+")
+        cmd = ["openssl", "s_client", "-connect", url, "-debug", "-ign_eof","-noservername"]
+        proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        try: 
+            _, error = proc.communicate("0 \r\n", timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            _, error = proc.communicate()
+        finally:        
+            return stdout_file
 
 
 
