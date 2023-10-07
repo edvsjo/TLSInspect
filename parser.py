@@ -34,6 +34,7 @@ class Parser:
         self.session_ID_resumption_support = self.scan_result.scan_result.session_resumption.result.session_id_resumption_result == sslyze.TlsResumptionSupportEnum.FULLY_SUPPORTED
         self.tls_ticket_resumption_support = False
         self.ticket_lifetime = 0
+        self.ticket_start_time = 0
 
         self.early_data_support = False
         self.max_early_data_size= 0
@@ -50,7 +51,7 @@ class Parser:
         self.openSSL_early_data_success = False
 
     def parse_scan_result(self):
-        # Parse the scan result
+        # Print the scan result
         print(self.host)
         print("TLSv1.3 Support: ", self.tls1_3_support)
         print("TLSv1.2 Support: ", self.tls1_2_support)
@@ -63,6 +64,7 @@ class Parser:
         print("Session ID resumption: ", self.session_ID_resumption_support)
         print("TLS Ticket resumption: ", self.tls_ticket_resumption_support)
         print("Ticket lifetime: ", self.ticket_lifetime)
+        print("Ticket start time: ", self.ticket_start_time)
         print("Early data support: ", self.early_data_support)
         print("Max early data size: ", self.max_early_data_size)
         print("Early data success: ", self.openSSL_early_data_success)
@@ -85,33 +87,34 @@ class Parser:
                 self.ticket_lifetime = secs
                 self.tls_ticket_resumption_support = True
             
+            if stripped.startswith("Start Time:"):
+                time = int(stripped.split(":")[1].strip().split(" ")[0])
+                self.ticket_start_time = time
+            
             if stripped.startswith("Max Early Data:"):
                 size = int(stripped.split(":")[1].strip().split(" ")[0])
                 self.max_early_data_size = size
                 self.early_data_support = True if size != 0 else False
             
-        # if ("Max Early Data: 0" in file_content):
-        #     self.early_data_support = False
-        #     self.max_early_data_size = 0
     
-    # def parse_openSSL_tls13_resumption(self, openSSL_resumption_file):
-    #     self.openSSL_tls13_resumption_file = openSSL_resumption_file
+    def parse_openSSL_tls13_resumption(self, openSSL_resumption_file):
+        self.openSSL_tls13_resumption_file = openSSL_resumption_file
 
-    #     f = open(openSSL_resumption_file, "r")
-    #     file_content = f.read()
-    #     splitted = file_content.split("\n")
-    #     for entry in splitted:
-    #         stripped = entry.strip()
+        f = open(openSSL_resumption_file, "r")
+        file_content = f.read()
+        splitted = file_content.split("\n")
+        for entry in splitted:
+            stripped = entry.strip()
 
-    #         if stripped.startswith("TLS session ticket lifetime hint:"):
-    #             secs = int(stripped.split(":")[1].strip().split(" ")[0])
-    #             self.ticket_lifetime = secs
-    #             self.tls_ticket_resumption_support = True
+            if stripped.startswith("TLS session ticket lifetime hint:"):
+                secs = int(stripped.split(":")[1].strip().split(" ")[0])
+                self.ticket_lifetime = secs
+                self.tls_ticket_resumption_support = True
             
-    #         if stripped.startswith("Max Early Data:"):
-    #             size = int(stripped.split(":")[1].strip().split(" ")[0])
-    #             self.max_early_data_size = size
-    #             self.early_data_support = True
+            if stripped.startswith("Max Early Data:"):
+                size = int(stripped.split(":")[1].strip().split(" ")[0])
+                self.max_early_data_size = size
+                self.early_data_support = True
 
 
     def parse_openSSL_DOWNGRD_test(self, openSSL_DOWNGRD_file):
@@ -150,7 +153,3 @@ class Parser:
                 self.openSSL_early_data_success = True
                 break
 
-
-    def push_to_database(self, parsed_result):
-        # Push the parsed result to the database
-        pass

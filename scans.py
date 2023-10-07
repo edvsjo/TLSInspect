@@ -2,6 +2,7 @@ import sslyze
 import subprocess
 import time
 import pathlib
+import database
 
 class Scans:
     def __init__(self, hosts):
@@ -26,6 +27,7 @@ class Scans:
                 # Handle bad input ie. invalid hostnames
                 print("Invalid hostname: ", host)
                 self.invalid_hosts.append(host)
+
         
         #Create a scanner object and add all the scans to the queue
         scanner = sslyze.Scanner()
@@ -49,11 +51,11 @@ class Scans:
         proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
         try: 
-            _, error = proc.communicate("0 \r\n", timeout=5)
+            _, error = proc.communicate("0 \r\n", timeout=2)
         except subprocess.TimeoutExpired:
             proc.kill()
             _, error = proc.communicate()
-        finally:        
+        finally:
             return stdout_file, session_outfile
 
     def openSSL_tls13_early_data(self, host, session_in_file, early_data_file):
@@ -67,7 +69,7 @@ class Scans:
         proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
         try: 
-            _, error = proc.communicate("0 \r\n", timeout=5)
+            _, error = proc.communicate("0 \r\n", timeout=2)
         except subprocess.TimeoutExpired:
             proc.kill()
             _, error = proc.communicate()
@@ -84,7 +86,7 @@ class Scans:
         cmd = ["openssl", "s_client", "-tls1_3", "-connect", url, "-sess_in", session_in_file, "-ign_eof", "-debug"]
         proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try: 
-            _, error = proc.communicate("0 \r\n", timeout=5)
+            _, error = proc.communicate("0 \r\n", timeout=2)
         except subprocess.TimeoutExpired:
             proc.kill()
             _, error = proc.communicate()
@@ -104,7 +106,7 @@ class Scans:
         proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
         try: 
-            _, error = proc.communicate("0 \r\n", timeout=5)
+            _, error = proc.communicate("0 \r\n", timeout=2)
         except subprocess.TimeoutExpired:
             proc.kill()
             _, error = proc.communicate()
@@ -123,7 +125,7 @@ class Scans:
         proc = subprocess.Popen(cmd, stdout=f, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
         try: 
-            _, error = proc.communicate("0 \r\n", timeout=5)
+            _, error = proc.communicate("0 \r\n", timeout=2)
         except subprocess.TimeoutExpired:
             proc.kill()
             _, error = proc.communicate()

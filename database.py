@@ -23,7 +23,7 @@ def config(filename='database.ini', section='postgresql'):
     return db
 
 def create_connection():
-    params = config(filename='Development code/Scanner/database.ini')
+    params = config(filename='Development_code/Scanner/database.ini')
 
     conn = psycopg2.connect(**params)
 
@@ -74,3 +74,52 @@ VALUES
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
 
+def send_scan_fail(host, cursor, error):
+    sql = f""" INSERT INTO scan_fails (
+host,
+time,
+error
+)
+VALUES (%s, %s, %s)
+        """
+    values = [host, datetime.datetime.now(), error]
+    try:
+        cursor.execute(sql, values)
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+def send_tls_session(parser_obj, cursor, ticket_used):
+    sql = f""" INSERT INTO tls_session (
+host,
+time,
+ticket_start_time,
+ticket_lifetime,
+used,
+openSSL_session
+)
+VALUES (%s, %s, %s, %s, %s, %s)
+        """
+    f = open(parser_obj.openSSL_tls13_resumption_file, "r")
+
+    values = [parser_obj.host, datetime.datetime.now(), parser_obj.ticket_start_time, parser_obj.ticket_lifetime, ticket_used, f.read()]
+    try:
+        cursor.execute(sql, values)
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error) 
+
+def send_tls_scan_raw(parser_obj, scan_file, option, cursor):
+    sql = f""" INSERT INTO tls_scan_raw (
+host,
+time,
+option,
+raw
+)
+VALUES (%s, %s, %s, %s)
+        """
+    f = open(scan_file, "r")
+
+    values = [parser_obj.host, datetime.datetime.now(), option, f.read()]
+    try:
+        cursor.execute(sql, values)
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
