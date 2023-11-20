@@ -1,11 +1,19 @@
 import sslyze
 import psycopg2
+import re
 
 class Parser:
     def __init__(self, host, scan_result):
+        """
+        Initialize the Parser object.
+
+        :param host: The hostname or IP address of the target.
+        :param scan_result: The scan result object from sslyze.
+        """
         self.host = host
         self.scan_result = scan_result
 
+        # Check TLS and SSL protocol versions supported by the host
         self.tls1_3_support = len(self.scan_result.scan_result.tls_1_3_cipher_suites.result.accepted_cipher_suites) > 0
         self.tls1_2_support = len(self.scan_result.scan_result.tls_1_2_cipher_suites.result.accepted_cipher_suites) > 0
         self.tls1_1_support = len(self.scan_result.scan_result.tls_1_1_cipher_suites.result.accepted_cipher_suites) > 0
@@ -13,6 +21,32 @@ class Parser:
         self.ssl3_support = len(self.scan_result.scan_result.ssl_3_0_cipher_suites.result.accepted_cipher_suites) > 0
         self.ssl2_support = len(self.scan_result.scan_result.ssl_2_0_cipher_suites.result.accepted_cipher_suites) > 0
 
+        pat = r"openssl_name='(\S*)'"
+        self.tls1_3_ciphers = []
+        for cipher in re.findall(pat, str(self.scan_result.scan_result.tls_1_3_cipher_suites.result.accepted_cipher_suites)):
+            self.tls1_3_ciphers.append(str(cipher))
+        
+        self.tls1_2_ciphers = []
+        for cipher in re.findall(pat, str(self.scan_result.scan_result.tls_1_2_cipher_suites.result.accepted_cipher_suites)):
+            self.tls1_2_ciphers.append(str(cipher))
+        
+        self.tls1_1_ciphers = []
+        for cipher in re.findall(pat, str(self.scan_result.scan_result.tls_1_1_cipher_suites.result.accepted_cipher_suites)):
+            self.tls1_1_ciphers.append(str(cipher))
+        
+        self.tls1_0_ciphers = []
+        for cipher in re.findall(pat, str(self.scan_result.scan_result.tls_1_0_cipher_suites.result.accepted_cipher_suites)):
+            self.tls1_0_ciphers.append(str(cipher))
+
+        self.ssl3_ciphers = []
+        for cipher in re.findall(pat, str(self.scan_result.scan_result.ssl_3_0_cipher_suites.result.accepted_cipher_suites)):
+            self.ssl3_ciphers.append(str(cipher))
+        
+        self.ssl2_ciphers = []
+        for cipher in re.findall(pat, str(self.scan_result.scan_result.ssl_2_0_cipher_suites.result.accepted_cipher_suites)):
+            self.ssl2_ciphers.append(str(cipher))
+
+        # Create a list of supported versions based on protocol support
         self.supported_versions = []
         if self.ssl2_support:
             self.supported_versions.append(0)
@@ -27,7 +61,7 @@ class Parser:
         if self.tls1_3_support:
             self.supported_versions.append(5)
         
-
+        # Check for various SSL/TLS features and initialize related attributes
         self.fallback_scsv = self.scan_result.scan_result.tls_fallback_scsv.result.supports_fallback_scsv
         self.support_DOWNGRD = False
 
@@ -51,7 +85,9 @@ class Parser:
         self.openSSL_early_data_success = False
 
     def parse_scan_result(self):
-        # Print the scan result
+        """
+        Print various attributes of the scan result.
+        """
         print(self.host)
         print("TLSv1.3 Support: ", self.tls1_3_support)
         print("TLSv1.2 Support: ", self.tls1_2_support)
@@ -118,6 +154,11 @@ class Parser:
 
 
     def parse_openSSL_DOWNGRD_test(self, openSSL_DOWNGRD_file):
+        """
+        Parse the OpenSSL DOWNGRD test results.
+
+        :param openSSL_DOWNGRD_file: Path to the OpenSSL DOWNGRD test results file.
+        """
         self.openSSL_DOWNGRD_scan_file = openSSL_DOWNGRD_file
 
         f = open(openSSL_DOWNGRD_file, "r")

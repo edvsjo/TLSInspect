@@ -37,7 +37,7 @@ def main():
     """
 
     # Import the hosts to scan
-    hosts = import_hosts("top-1m.csv", amount=1000)
+    hosts = import_hosts("top-1m.csv", amount=1)
     # hosts = HOSTS
     
     print("Attempting to connect to database")
@@ -51,10 +51,20 @@ def main():
 
     failed_scan = []
 
+    # Count the number of hosts that has been scanned
+    count = 0
+
     # For each scan result from the sslyze scans we need to parse the result and do further scans
     for scan_result in all_server_scan_results.get_results():
         host = scan_result.server_location.hostname
         print("Scan result for: ", host)
+        
+        # Commit the results to the database every 50 hosts
+        count += 1
+        if count % 50 == 0:
+            print("Scanned ", count, " hosts. Commiting results to database")
+            conn.commit()
+
 
         # Tests if SSLyze was able to connect to the host. This weeds out most of the invalid hosts
         if scan_result.scan_status == sslyze.ServerScanStatusEnum.ERROR_NO_CONNECTIVITY:

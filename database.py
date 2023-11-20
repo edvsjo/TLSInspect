@@ -5,7 +5,7 @@ import time
 import datetime
 
 
-def config(filename='database.ini', section='postgresql'):
+def config(filename='./database.ini', section='postgresql'):
     # create a parser
     parser = ConfigParser()
     # read config file
@@ -48,9 +48,15 @@ tls_ticket_resumption_support,
 ticket_lifetime,
 early_data_support,
 max_early_data_size,
-no_SNI_success)
+no_SNI_success,
+tls1_3_ciphers,
+tls1_2_ciphers,
+tls1_1_ciphers,
+tls1_0_ciphers,
+ssl3_ciphers,
+ssl2_ciphers)
 VALUES
-(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     values =[
     parser_obj.host, 
@@ -68,7 +74,13 @@ VALUES
     parser_obj.ticket_lifetime,
     parser_obj.early_data_support,
     parser_obj.max_early_data_size,
-    parser_obj.openSSL_no_SNI_success]
+    parser_obj.openSSL_no_SNI_success,
+    ",".join(parser_obj.tls1_3_ciphers),
+    ",".join(parser_obj.tls1_2_ciphers),
+    ",".join(parser_obj.tls1_1_ciphers),
+    ",".join(parser_obj.tls1_0_ciphers),
+    ",".join(parser_obj.ssl3_ciphers),
+    ",".join(parser_obj.ssl2_ciphers)]
     try:
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
@@ -123,3 +135,8 @@ VALUES (%s, %s, %s, %s)
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
+
+def get_unused_session(cursor, host):
+    sql = f""" SELECT host, openSSL_session FROM tls_session WHERE host={host} AND used = FALSE LIMIT 1 """
+    cursor.execute(sql)
+    return cursor.fetchone()
