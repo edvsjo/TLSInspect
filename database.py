@@ -1,11 +1,11 @@
-import psycopg2
 from configparser import ConfigParser
+import psycopg2
 import parser
 import time
 import datetime
 
 
-def config(filename='./database.ini', section='postgresql'):
+def config(filename="./database.ini", section="postgresql"):
     # create a parser
     parser = ConfigParser()
     # read config file
@@ -18,12 +18,17 @@ def config(filename='./database.ini', section='postgresql'):
         for param in params:
             db[param[0]] = param[1]
     else:
-        raise Exception('Section {0} not found in the {1} file'.format(section, filename))
+        raise Exception(
+            "Section {0} not found in the {1} file".format(section, filename)
+        )
 
     return db
 
+
 def create_connection():
-    params = config(filename='Development_code/Scanner/database.ini')
+    params = config(
+        filename="/uio/hume/student-u17/edvardds/M-drive/pc/Downloads/Scanner/database.ini"
+    )
 
     conn = psycopg2.connect(**params)
 
@@ -54,37 +59,44 @@ tls1_2_ciphers,
 tls1_1_ciphers,
 tls1_0_ciphers,
 ssl3_ciphers,
-ssl2_ciphers)
-VALUES
-(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ssl2_ciphers,
+tranco_rank,
+top_level_domain,
+session_ticket_resumption_support)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-    values =[
-    parser_obj.host, 
-    datetime.datetime.now(),
-    parser_obj.tls1_3_support, 
-    parser_obj.tls1_2_support, 
-    parser_obj.tls1_1_support,
-    parser_obj.tls1_0_support, 
-    parser_obj.ssl3_support,
-    parser_obj.ssl2_support,
-    parser_obj.fallback_scsv,
-    parser_obj.support_DOWNGRD,
-    parser_obj.session_ID_resumption_support,
-    parser_obj.tls_ticket_resumption_support,
-    parser_obj.ticket_lifetime,
-    parser_obj.early_data_support,
-    parser_obj.max_early_data_size,
-    parser_obj.openSSL_no_SNI_success,
-    ",".join(parser_obj.tls1_3_ciphers),
-    ",".join(parser_obj.tls1_2_ciphers),
-    ",".join(parser_obj.tls1_1_ciphers),
-    ",".join(parser_obj.tls1_0_ciphers),
-    ",".join(parser_obj.ssl3_ciphers),
-    ",".join(parser_obj.ssl2_ciphers)]
+    values = [
+        parser_obj.host,
+        datetime.datetime.now(),
+        parser_obj.tls1_3_support,
+        parser_obj.tls1_2_support,
+        parser_obj.tls1_1_support,
+        parser_obj.tls1_0_support,
+        parser_obj.ssl3_support,
+        parser_obj.ssl2_support,
+        parser_obj.fallback_scsv,
+        parser_obj.support_DOWNGRD,
+        parser_obj.session_ID_resumption_support,
+        parser_obj.psk_resumption_support,
+        parser_obj.ticket_lifetime,
+        parser_obj.early_data_support,
+        parser_obj.max_early_data_size,
+        parser_obj.openSSL_no_SNI_success,
+        ",".join(parser_obj.tls1_3_ciphers),
+        ",".join(parser_obj.tls1_2_ciphers),
+        ",".join(parser_obj.tls1_1_ciphers),
+        ",".join(parser_obj.tls1_0_ciphers),
+        ",".join(parser_obj.ssl3_ciphers),
+        ",".join(parser_obj.ssl2_ciphers),
+        parser_obj.tranco_rank,
+        parser_obj.top_level_domain,
+        parser_obj.session_ticket_support,
+    ]
     try:
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
+
 
 def send_scan_fail(host, cursor, error):
     sql = f""" INSERT INTO scan_fails (
@@ -100,6 +112,7 @@ VALUES (%s, %s, %s)
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
 
+
 def send_tls_session(parser_obj, cursor, ticket_used):
     sql = f""" INSERT INTO tls_session (
 host,
@@ -113,11 +126,21 @@ VALUES (%s, %s, %s, %s, %s, %s)
         """
     f = open(parser_obj.openSSL_tls13_resumption_file, "r")
 
-    values = [parser_obj.host, datetime.datetime.now(), parser_obj.ticket_start_time, parser_obj.ticket_lifetime, ticket_used, f.read()]
+    values = [
+        parser_obj.host,
+        datetime.datetime.now(),
+        parser_obj.ticket_start_time,
+        parser_obj.ticket_lifetime,
+        ticket_used,
+        f.read(),
+    ]
     try:
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error) 
+        print(error)
+    finally:
+        f.close()
+
 
 def send_tls_scan_raw(parser_obj, scan_file, option, cursor):
     sql = f""" INSERT INTO tls_scan_raw (
@@ -135,6 +158,9 @@ VALUES (%s, %s, %s, %s)
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
+    finally:
+        f.close()
+
 
 def get_unused_session(cursor, host):
     sql = f""" SELECT host, openSSL_session FROM tls_session WHERE host={host} AND used = FALSE LIMIT 1 """
