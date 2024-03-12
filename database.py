@@ -95,7 +95,7 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
     try:
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        print("Result", error)
 
 
 def send_scan_fail(host, cursor, error):
@@ -110,7 +110,7 @@ VALUES (%s, %s, %s)
     try:
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        print("fail", error)
 
 
 def send_tls_session(parser_obj, cursor, ticket_used):
@@ -137,7 +137,7 @@ VALUES (%s, %s, %s, %s, %s, %s)
     try:
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        print("TLS session", error)
     finally:
         f.close()
 
@@ -157,7 +157,7 @@ VALUES (%s, %s, %s, %s)
     try:
         cursor.execute(sql, values)
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        print("RAW", error)
     finally:
         f.close()
 
@@ -166,3 +166,37 @@ def get_unused_session(cursor, host):
     sql = f""" SELECT host, openSSL_session FROM tls_session WHERE host={host} AND used = FALSE LIMIT 1 """
     cursor.execute(sql)
     return cursor.fetchone()
+
+def send_certificate(parser_obj, cursor):
+    sql = f""" INSERT INTO certificates (
+host,
+time,
+certificate,
+start_date,
+end_date,
+issuer,
+verified_chain,
+key_size,
+signature_algorithm,
+public_key_algorithm,
+subject_alt_names,
+ocsp_response
+) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+    values = [
+        parser_obj.host,
+        datetime.datetime.now(),
+        parser_obj.certificate,
+        parser_obj.start_date,
+        parser_obj.end_date,
+        parser_obj.issuer,
+        parser_obj.certificate_chain,
+        parser_obj.key_size,
+        parser_obj.signature_Algorithm,
+        parser_obj.public_key_algorithm,
+        parser_obj.subject_alt_names,
+        parser_obj.ocsp_response_success,
+    ]
+    try:
+        cursor.execute(sql, values)
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("certificate error", error)

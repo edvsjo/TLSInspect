@@ -1,12 +1,19 @@
 import sslyze
-from sslyze import ScanCommandAttemptStatusEnum
+from sslyze import (
+    ScanCommandAttemptStatusEnum,
+    SslyzeOutputAsJson,
+    ServerScanResultAsJson,
+    ServerScanResult,
+)
+import pathlib
 import scans
 import parser
 import csv
 import database
+from datetime import datetime
+import json
 
-
-def import_hosts(hosts_file, count=5):
+def import_hosts(hosts_file, count=5, offset=0):
     """
     Imports the top n hosts from the provided csv file
 
@@ -18,27 +25,49 @@ def import_hosts(hosts_file, count=5):
         hosts_rank (dict): A dictionary containing the rank of each host
     """
     hosts = []
-    hosts_rank = {} 
+    hosts_rank = {}
+    i = 0
     with open(hosts_file) as csvfile:
         # spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         spamreader = csv.reader(csvfile)
         for row in spamreader:
+            i += 1
+            if i <= offset:
+                continue
             # print(', '.join(row))
             splitted = ', '.join(row).split(",")
             hosts.append(splitted[1].strip())
             hosts_rank[splitted[1].strip()] = int(splitted[0].strip())
-            if len(hosts) >= count:
+            if i >= count:
                 break
     # print(hosts)
     return hosts, hosts_rank
 
-def main(amount=10000):
+# The following code is taken from the sslyze documentation
+def example_json_result_output(
+    json_file_out: pathlib.Path,
+    server_scan_results: ServerScanResult,
+    date_scans_started: datetime,
+    date_scans_completed: datetime,
+) -> None:
+    json_output = SslyzeOutputAsJson(
+        server_scan_results=[ServerScanResultAsJson.from_orm(server_scan_results)],
+        invalid_server_strings=[],
+        date_scans_started=date_scans_started,
+        date_scans_completed=date_scans_completed,
+    )
+    json_output_as_str = json_output.json()
+    json_file_out.write_text(json_output_as_str)
+
+
+def main(amount=10000, offset=0):
     """
     Main function for the scanner.
     """
 
     # Import the hosts to scan and their rank
-    hosts, hosts_rank = import_hosts("top-1m.csv", amount)
+    # hosts, hosts_rank = import_hosts("top-1m.csv", amount)
+    hosts, hosts_rank = import_hosts("tranco_J992Y.csv", amount, offset)
     # hosts = HOSTS
 
     print("Attempting to connect to database")
@@ -63,10 +92,12 @@ def main(amount=10000):
         host = scan_result.server_location.hostname
         print(f"Progress: {count}, Scan result for: {host}")
 
+        date_started = datetime.utcnow()
+
         # Commit the results to the database every 50 hosts to avoid losing too much data if the program crashes
         count += 1
         if count % 50 == 0:
-            print(f"Scanned {count} hosts. Only {amount-count-len(failed_scan)-amount_invalid} left. Commiting results to database")
+            print(f"Scanned {count} hosts. Only {amount-count-amount_invalid-offset} left. Commiting results to database")
             conn.commit()
 
         # Tests if SSLyze was able to connect to the host. This weeds out most of the invalid hosts
@@ -104,9 +135,7 @@ def main(amount=10000):
                     # To catch the case where the host does not provide a tls 1.3 session to resume
                     except FileNotFoundError:
                         print(f"No TLS1.3 resumption file found {host}")
-                        failed_scan.append(host)
                         database.send_scan_fail(host, cur, "No resumption file")
-                        continue
                     except:
                         print(f"Something failed with TLS 1.3 scan for {host}")
                         database.send_scan_fail(host, cur, "Something failed with TLS 1.3 scan")
@@ -140,10 +169,20 @@ def main(amount=10000):
                 except:
                     print(f"Something failed with no SNI test for {host}")
                     database.send_scan_fail(host, cur, "Something failed with no SNI test")
-
+                try:
+                    print("Sending certificate to database")
+                    database.send_certificate(parser_obj, cur)
+                except:
+                    print(f"Failed to send certificate to database for {host}")
+                    database.send_scan_fail(host, cur, "Failed to send certificate to database")
                 # parser_obj.parse_scan_result()
 
                 # Send the scan result to the database
+                # Save the sslyze scan result to a json file
+                # json_path = pathlib.Path(f"scan_results/{host}.json")
+                # print(f"Saving sslyze scan result to {json_path}")
+                # example_json_result_output(json_path, scan_result, date_started, datetime.utcnow())
+
                 database.send_scan_result(parser_obj, cur)
 
     print("Finished scanning all hosts. Commiting results to database")
@@ -161,5 +200,5 @@ def main(amount=10000):
 
 
 if __name__ == "__main__":
-    main(amount=100)
+    main(amount=10000, offset=5000)
     # import_hosts("top-1m.csv")

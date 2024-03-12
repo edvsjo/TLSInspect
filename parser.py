@@ -1,6 +1,15 @@
 import sslyze
 import psycopg2
 import re
+import cryptography
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.x509.ocsp import OCSPResponseStatus
+from sslyze import (
+    CertificateInfoScanResult,
+    CertificateInfoExtraArgument,
+)
+import datetime
 
 class Parser:
     def __init__(self, host, tranco_rank, scan_result):
@@ -77,6 +86,48 @@ class Parser:
         self.top_level_domain = self.host.split(".")[-1]
 
         self.tranco_rank = tranco_rank
+
+        # Parse the certificate info
+        leaf_cert = scan_result.scan_result.certificate_info.result.certificate_deployments[0].received_certificate_chain[0]
+        self.certificate = leaf_cert.public_bytes(Encoding.PEM).decode("utf-8")
+
+        self.start_date = leaf_cert.not_valid_before
+
+        self.end_date = leaf_cert.not_valid_after
+
+        self.certificate_chain = ""
+        try: 
+            for cert in scan_result.scan_result.certificate_info.result.certificate_deployments[0].verified_certificate_chain:
+                chain_cert_name = cert.subject.get_attributes_for_oid(cryptography.x509.oid.NameOID.COMMON_NAME)
+                # print(chain_cert_name[0].value)
+                self.certificate_chain += chain_cert_name[0].value + ", "
+        except:
+            self.certificate_chain += "Unknown, "
+
+        try: 
+            self.issuer = leaf_cert.issuer.get_attributes_for_oid(cryptography.x509.oid.NameOID.COMMON_NAME)[0].value
+        except:
+            self.issuer = "Unknown"
+
+        self.key_size = leaf_cert.public_key().key_size
+
+        self.signature_Algorithm = leaf_cert.signature_algorithm_oid._name
+
+        self.public_key_algorithm = leaf_cert.public_key().__str__()
+
+        self.subject_alt_names = ""
+        try: 
+            alts = leaf_cert.extensions.get_extension_for_oid(cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+            for alt in alts.value.__str__().split(","):
+                if "DNS" in alt:
+                    name = alt.split("=")[1]
+                    self.subject_alt_names += name[1 : name.rfind("'")] + ", "
+        except:
+            self.subject_alt_names += "None, "
+
+        self.ocsp_response_success = False
+        if scan_result.scan_result.certificate_info.result.certificate_deployments[0].ocsp_response is not None:
+            self.ocsp_response_success = scan_result.scan_result.certificate_info.result.certificate_deployments[0].ocsp_response.response_status == OCSPResponseStatus.SUCCESSFUL
 
     def parse_scan_result(self):
         """
