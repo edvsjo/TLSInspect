@@ -180,8 +180,9 @@ key_size,
 signature_algorithm,
 public_key_algorithm,
 subject_alt_names,
-ocsp_response
-) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+ocsp_response,
+sct_count
+) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
     values = [
         parser_obj.host,
         datetime.datetime.now(),
@@ -195,6 +196,7 @@ ocsp_response
         parser_obj.public_key_algorithm,
         parser_obj.subject_alt_names,
         parser_obj.ocsp_response_success,
+        parser_obj.sct_count,
     ]
     try:
         cursor.execute(sql, values)

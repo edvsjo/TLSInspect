@@ -129,6 +129,12 @@ class Parser:
         if scan_result.scan_result.certificate_info.result.certificate_deployments[0].ocsp_response is not None:
             self.ocsp_response_success = scan_result.scan_result.certificate_info.result.certificate_deployments[0].ocsp_response.response_status == OCSPResponseStatus.SUCCESSFUL
 
+        self.sct_count = (
+            scan_result.scan_result.certificate_info.result.certificate_deployments[
+                0
+            ].leaf_certificate_signed_certificate_timestamps_count
+        )
+
     def parse_scan_result(self):
         """
         Print various attributes of the scan result.
@@ -164,6 +170,7 @@ class Parser:
         print("Tranco rank: ", self.tranco_rank)
         print("Top level domain: ", self.top_level_domain)
         print("")
+        print("SCT", self.sct_count)
         pass
 
     def parse_openSSL_tls13_scan_result(self, openSSL_scan_file, openSSL_resumption_file):

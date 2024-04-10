@@ -67,7 +67,7 @@ def main(amount=10000, offset=0):
 
     # Import the hosts to scan and their rank
     # hosts, hosts_rank = import_hosts("top-1m.csv", amount)
-    hosts, hosts_rank = import_hosts("tranco_J992Y.csv", amount, offset)
+    hosts, hosts_rank = import_hosts("top-1m.csv", amount, offset)
     # hosts = HOSTS
 
     print("Attempting to connect to database")
@@ -170,13 +170,12 @@ def main(amount=10000, offset=0):
                     print(f"Something failed with no SNI test for {host}")
                     database.send_scan_fail(host, cur, "Something failed with no SNI test")
                 try:
-                    print("Sending certificate to database")
                     database.send_certificate(parser_obj, cur)
                 except:
                     print(f"Failed to send certificate to database for {host}")
                     database.send_scan_fail(host, cur, "Failed to send certificate to database")
-                # parser_obj.parse_scan_result()
 
+                # parser_obj.parse_scan_result()
                 # Send the scan result to the database
                 # Save the sslyze scan result to a json file
                 # json_path = pathlib.Path(f"scan_results/{host}.json")
@@ -200,5 +199,5 @@ def main(amount=10000, offset=0):
 
 
 if __name__ == "__main__":
-    main(amount=10000, offset=5000)
+    main(amount=100000, offset=90000)
     # import_hosts("top-1m.csv")
